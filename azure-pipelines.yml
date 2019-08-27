@@ -1,0 +1,39 @@
+trigger:
+- hwangsaeul/master
+- hwangsaeul/wip
+
+jobs:
+- job: Ubuntu1804
+  displayName: 'Ubuntu 18.04'
+  pool: 'Ubuntu1804'
+  strategy: 
+    matrix:
+      x86_64:
+        config.name: 'linux.config'
+        flags.offline: ' --offline'
+        flags.buildtoolsonly: ' --build-tools-only'
+      arm64:
+        config.name: 'cross-lin-arm64.cbc'
+        flags.offline: ' '
+        flags.buildtoolsonly: ' '
+  steps:
+  - bash: |
+      git config --global user.name "$(git.user.name)"
+      git config --global user.email "$(git.user.email)"
+
+    displayName: 'Overriding git user'
+
+  - bash: |
+      ./cerbero-uninstalled -c config/$(config.name) show-config
+      ./cerbero-uninstalled -c config/$(config.name) fetch-bootstrap $(flags.buildtoolsonly)
+      ./cerbero-uninstalled -c config/$(config.name) fetch-package --deps gstreamer-1.0
+
+    displayName: 'Fetching packages'
+
+  - bash: |
+      ./cerbero-uninstalled -c config/$(config.name) bootstrap $(flags.offline) $(flags.buildtoolsonly)
+    displayName: 'Bootstrapping'
+
+  - bash: |
+      ./cerbero-uninstalled -c config/$(config.name) package $(flags.offline) gstreamer-1.0
+    displayName: 'Packaging'
